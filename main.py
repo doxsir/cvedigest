@@ -5,8 +5,8 @@ import sys, json, http.client, socket, ipaddress
 
 API = "api.github.com"
 
-# severity по возрастанию боли
-SEV = {"LOW": 1, "MODERATE": 2, "HIGH": 3, "CRITICAL": 4}
+# severity по возрастанию боли (в api всё lowercase)
+SEV = {"low": 1, "moderate": 2, "high": 3, "critical": 4}
 
 def check_host():
     # паранойя: резолвим хост и отказываемся работать если он вдруг приватный
@@ -37,7 +37,7 @@ def usage():
 def md_digest(items, sev):
     # фильтр применяется и тут, чтобы --min работал в дайджесте
     if sev:
-        items = [a for a in items if SEV.get(a.get("severity", "low").upper(), 0) >= SEV[sev]]
+        items = [a for a in items if SEV.get(a.get("severity", "low"), 0) >= SEV[sev.lower()]]
     print("| sev | score | cve | package | summary |")
     print("|---|---|---|---|---|")
     for a in items:
@@ -54,10 +54,8 @@ def md_digest(items, sev):
             a.get("severity", "?").upper(), score_s,
             a.get("cve_id") or a["ghsa_id"], link, pkgs, summary))
 
-def main():
-    args = sys.argv[1:]
-    if not args or args[0] in ("-h", "--help"):
-        usage()
+def parse_args(args):
+    # возвращает (eco, sev, limit, digest); eco = None если первый аргумент флаг
     eco = None
     if args and not args[0].startswith("--"):
         eco = args[0]
@@ -77,9 +75,20 @@ def main():
             digest = True
             i += 2
         else:
+            # позиционная экосистема может стоять и после флагов
+            if not args[i].startswith("--") and eco is None:
+                eco = args[i]
+            # неизвестный флаг молча пропускаем, зачем падать
             i += 1
+    return eco, sev, limit, digest
 
-    if sev and sev not in SEV:
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help"):
+        usage()
+    eco, sev, limit, digest = parse_args(args)
+
+    if sev and sev.lower() not in SEV:
         sys.exit("severity: low, moderate, high, critical")
 
     check_host()
@@ -108,7 +117,7 @@ def main():
     # фильтр "от этой тяжести и выше" т.к. api умеет только точное совпадение
     # (в ответе severity приходит в lowercase, потому .upper())
     if sev:
-        items = [a for a in items if SEV.get(a.get("severity", "low").upper(), 0) >= SEV[sev]]
+        items = [a for a in items if SEV.get(a.get("severity", "low"), 0) >= SEV[sev.lower()]]
     items = items[:limit]
 
     if not items:
