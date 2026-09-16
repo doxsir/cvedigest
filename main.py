@@ -71,11 +71,16 @@ def main():
         return
 
     for a in items:
-        print("[%s] %s" % (a.get("severity", "?").upper(), a["summary"][:90]))
+        cvss = a.get("cvss") or {}
+        score = cvss.get("score")
+        score_s = ("%.1f" % score) if isinstance(score, (int, float)) else "n/a"
+        print("[%s %s] %s" % (a.get("severity", "?").upper(), score_s, a["summary"][:80]))
         print("  %s  published %s" % (a.get("cve_id") or a["ghsa_id"], a.get("published_at", "?")[:10]))
         for v in (a.get("vulnerabilities") or [])[:3]:
             p = v.get("package", {})
             print("  - %s/%s %s" % (p.get("ecosystem", "?").lower(), p.get("name", "?"), v.get("vulnerable_version_range", "")))
+        # ссылка на сам advisory всегда полезнее чем её отсутствие
+        print("  -> " + a.get("html_url", "https://github.com/advisories/" + a["ghsa_id"]))
         print()
 
 if __name__ == "__main__":
