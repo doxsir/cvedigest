@@ -28,22 +28,53 @@ def fetch(path):
     finally:
         conn.close()
 
+def usage():
+    print("usage: cvedigest.py <ecosystem> [--min high] [--limit 10] [--digest weekly]")
+    print("example: cvedigest.py pip --min high")
+    print("  --digest weekly = вся неделя markdown-таблицей (экосистема опциональна)")
+    sys.exit(0)
+
+def md_digest(items, sev):
+    # фильтр применяется и тут, чтобы --min работал в дайджесте
+    if sev:
+        items = [a for a in items if SEV.get(a.get("severity", "low").upper(), 0) >= SEV[sev]]
+    print("| sev | score | cve | package | summary |")
+    print("|---|---|---|---|---|")
+    for a in items:
+        cvss = a.get("cvss") or {}
+        score = cvss.get("score")
+        score_s = ("%.1f" % score) if isinstance(score, (int, float)) else ""
+        pkgs = ", ".join(
+            "%s/%s" % ((v.get("package") or {}).get("ecosystem", "?").lower(), (v.get("package") or {}).get("name", "?"))
+            for v in (a.get("vulnerabilities") or [])[:2])
+        link = a.get("html_url") or ("https://github.com/advisories/" + a["ghsa_id"])
+        # markdown ломается от | в тексте, режем
+        summary = a["summary"][:70].replace("|", "/")
+        print("| %s | %s | [%s](%s) | %s | %s |" % (
+            a.get("severity", "?").upper(), score_s,
+            a.get("cve_id") or a["ghsa_id"], link, pkgs, summary))
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
-        print("usage: cvedigest.py <ecosystem> [--min high] [--limit 10]")
-        print("example: cvedigest.py pip --min high")
-        sys.exit(0)
-    eco = args[0]
+        usage()
+    eco = None
+    if args and not args[0].startswith("--"):
+        eco = args[0]
+        args = args[1:]
     sev = None
     limit = 10
-    i = 1
+    digest = False
+    i = 0
     while i < len(args):
         if args[i] == "--min" and i + 1 < len(args):
             sev = args[i + 1].upper()
             i += 2
         elif args[i] == "--limit" and i + 1 < len(args):
             limit = int(args[i + 1])
+            i += 2
+        elif args[i] == "--digest" and i + 1 < len(args) and args[i + 1] == "weekly":
+            digest = True
             i += 2
         else:
             i += 1
@@ -53,6 +84,20 @@ def main():
 
     check_host()
     path = "/advisories?per_page=" + str(limit * 3)
+    if digest:
+        # неделя назад, формат YYYY-MM-DD (UTC, но кому важно)
+        from datetime import date, timedelta
+        week_ago = (date.today() - timedelta(days=7)).isoformat()
+        path += "&published=%3E%3D" + week_ago
+        if eco:
+            path += "&ecosystem=" + eco
+        if sev:
+            # api хочет lowercase, иначе 422. полдня убил
+            path += "&severity=" + sev.lower()
+        items = fetch(path)
+        md_digest(items, sev)
+        return
+
     if eco:
         path += "&ecosystem=" + eco  # экосистемы вроде pip/npm, квотить нечего
     if sev:
