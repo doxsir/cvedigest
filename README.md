@@ -15,9 +15,15 @@
 python3 main.py pip                # свежий pip-малварь
 python3 main.py npm --min high     # только high и critical
 python3 main.py go --limit 5
+python3 main.py --digest weekly    # неделя markdown-таблицей
+python3 main.py --min high --kev   # только то что в CISA KEV (реально эксплуатируют)
 ```
 
 Экосистемы — те же, что в GitHub: pip, npm, go, maven, rubygems, cargo...
+
+Про `--kev`: тянет список CISA Known Exploited Vulnerabilities и показывает
+только совпавшее. Нюанс — в KEV попадают с задержкой, так что со свежими
+неделями список часто пустой. Это не баг, это суровая правда про exploit-ветку.
 
 ## Пример вывода
 
