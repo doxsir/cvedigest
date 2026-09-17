@@ -5,20 +5,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import parse_args, SEV
 
 def test_plain():
-    assert parse_args(["pip"]) == ("pip", None, 10, False)
+    assert parse_args(["pip"]) == ("pip", None, 10, False, False)
 
 def test_with_flags():
-    assert parse_args(["pip", "--min", "high", "--limit", "5"]) == ("pip", "HIGH", 5, False)
+    assert parse_args(["pip", "--min", "high", "--limit", "5"]) == ("pip", "HIGH", 5, False, False)
 
 def test_flags_only():
     # раньше вот тут всё ломалось, флаги после флага съедались
-    assert parse_args(["--digest", "weekly", "--min", "high"]) == (None, "HIGH", 10, True)
+    assert parse_args(["--digest", "weekly", "--min", "high"]) == (None, "HIGH", 10, True, False)
 
 def test_eco_after_flags():
-    assert parse_args(["--digest", "weekly", "npm"]) == ("npm", None, 10, True)
+    assert parse_args(["--digest", "weekly", "npm"]) == ("npm", None, 10, True, False)
 
 def test_unknown_flag():
-    assert parse_args(["pip", "--wat"]) == ("pip", None, 10, False)
+    assert parse_args(["pip", "--wat"]) == ("pip", None, 10, False, False)
+
+def test_kev_flag():
+    assert parse_args(["--kev", "npm"]) == ("npm", None, 10, False, True)
+    assert parse_args(["--digest", "weekly", "--kev"]) == (None, None, 10, True, True)
 
 def test_sev_filter():
     items = [{"severity": "high"}, {"severity": "low"}, {"severity": "critical"}]
