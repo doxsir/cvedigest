@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="316" viewBox="0 0 780 316">
+<rect width="780" height="316" rx="8" fill="#0d1117"/>
+<circle cx="24" cy="24" r="6" fill="#ff5f56"/>
+<circle cx="24" cy="24" r="6" fill="#ffbd2e"/>
+<circle cx="24" cy="24" r="6" fill="#27c93f"/>
+<text x="50%%" y="28" text-anchor="middle" font-family="monospace" font-size="12" fill="#8b949e">cvedigest — pip --min critical</text>
+<text x="20" y="56" font-family="Consolas,monospace" font-size="13" fill="#c9d1d9">$ python main.py pip --min critical --limit 3</text>
+<text x="20" y="74" font-family="Consolas,monospace" font-size="13" fill="#f85149">      [CRITICAL 9.1] djust has an authorization bypass on the WebSocket/SSE mount path</text>
+<text x="20" y="92" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  CVE-2026-61594  published 2026-09-16</text>
+<text x="20" y="110" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  - pip/djust &lt; 1.0.7</text>
+<text x="20" y="128" font-family="Consolas,monospace" font-size="13" fill="#58a6ff">  -&gt; https://github.com/advisories/GHSA-xhhm-f6hp-2qwj</text>
+<text x="20" y="146" font-family="Consolas,monospace" font-size="13" fill="#c9d1d9"></text>
+<text x="20" y="164" font-family="Consolas,monospace" font-size="13" fill="#f85149">      [CRITICAL 9.8] LMdeploy has Remote Code Execution by Pickle Deserialization via zmq_rpc.call_an</text>
+<text x="20" y="182" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  CVE-2025-59953  published 2026-09-16</text>
+<text x="20" y="200" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  - pip/lmdeploy &gt;= 0.9.1, &lt; 0.10.2</text>
+<text x="20" y="218" font-family="Consolas,monospace" font-size="13" fill="#58a6ff">  -&gt; https://github.com/advisories/GHSA-5h8j-6crg-7rmw</text>
+<text x="20" y="236" font-family="Consolas,monospace" font-size="13" fill="#c9d1d9"></text>
+<text x="20" y="254" font-family="Consolas,monospace" font-size="13" fill="#f85149">      [CRITICAL 9.8] ESPHome Device Builder: Renamed auth env vars silently disable dashboard authent</text>
+<text x="20" y="272" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  CVE-2026-59178  published 2026-09-14</text>
+<text x="20" y="290" font-family="Consolas,monospace" font-size="13" fill="#8b949e">  - pip/esphome-device-builder &lt; 1.0.12</text>
+<text x="20" y="308" font-family="Consolas,monospace" font-size="13" fill="#58a6ff">  -&gt; https://github.com/advisories/GHSA-rrxg-g2pf-6hh4</text>
+</svg>
