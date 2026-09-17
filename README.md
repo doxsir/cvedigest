@@ -21,6 +21,10 @@ python3 main.py --min high --kev   # только то что в CISA KEV (ре�
 
 Экосистемы — те же, что в GitHub: pip, npm, go, maven, rubygems, cargo...
 
+## Как выглядит
+
+![demo](docs/demo.svg)
+
 Про `--kev`: тянет список CISA Known Exploited Vulnerabilities и показывает
 только совпавшее. Нюанс — в KEV попадают с задержкой, так что со свежими
 неделями список часто пустой. Это не баг, это суровая правда про exploit-ветку.
