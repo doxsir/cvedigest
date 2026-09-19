@@ -45,12 +45,16 @@ def usage():
     print("  --kev = только то что в CISA Known Exploited, остальное в мусор")
     sys.exit(0)
 
-def md_digest(items, sev, kev_set=None):
-    # фильтр применяется и тут, чтобы --min работал в дайджесте
+def filter_items(items, sev, kev_set=None):
+    # один фильтр на все режимы: --min это "не ниже", а не точное совпадение
     if sev:
         items = [a for a in items if SEV.get(a.get("severity", "low"), 0) >= SEV[sev.lower()]]
     if kev_set is not None:
         items = [a for a in items if a.get("cve_id") in kev_set]
+    return items
+
+def md_digest(items, sev, kev_set=None):
+    items = filter_items(items, sev, kev_set)
     print("| sev | score | kev | cve | package | summary |")
     print("|---|---|---|---|---|---|")
     for a in items:
@@ -78,6 +82,7 @@ def parse_args(args):
     limit = 10
     digest = False
     kev = False
+    as_json = False
     i = 0
     while i < len(args):
         if args[i] == "--min" and i + 1 < len(args):
@@ -92,21 +97,26 @@ def parse_args(args):
         elif args[i] == "--kev":
             kev = True
             i += 1
+        elif args[i] == "--json":
+            as_json = True
+            i += 1
         else:
             # позиционная экосистема может стоять и после флагов
             if not args[i].startswith("--") and eco is None:
                 eco = args[i]
             # неизвестный флаг молча пропускаем, зачем падать
             i += 1
-    return eco, sev, limit, digest, kev
+    return eco, sev, limit, digest, kev, as_json
 
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         usage()
-    eco, sev, limit, digest, kev = parse_args(args)
+    eco, sev, limit, digest, kev, as_json = parse_args(args)
+    if sev:
+        sev = sev.lower()
 
-    if sev and sev.lower() not in SEV:
+    if sev and sev not in SEV:
         sys.exit("severity: low, moderate, high, critical")
 
     check_host(API)
@@ -120,7 +130,7 @@ def main():
             path += "&ecosystem=" + eco
         if sev:
             # api хочет lowercase, иначе 422. полдня убил
-            path += "&severity=" + sev.lower()
+            path += "&severity=" + sev
         items = fetch(path)
         # для дайджеста качаем все 30, лимит не режем — там таблица на неделю
         md_digest(items, sev, fetch_kev() if kev else None)
@@ -129,20 +139,36 @@ def main():
     if eco:
         path += "&ecosystem=" + eco
     if sev:
-        path += "&severity=" + sev.lower()
+        path += "&severity=" + sev
 
     items = fetch(path)  # берём с запасом, потом режем
     kev_set = fetch_kev() if kev else None
-    # фильтр "от этой тяжести и выше" т.к. api умеет только точное совпадение
-    # (в ответе severity приходит в lowercase, потому .upper())
-    if sev:
-        items = [a for a in items if SEV.get(a.get("severity", "low"), 0) >= SEV[sev.lower()]]
-    if kev:
-        items = [a for a in items if a.get("cve_id") in kev_set]
+    items = filter_items(items, sev, kev_set)
     items = items[:limit]
 
     if not items:
         print("nothing found, weird. try another ecosystem")
+        return
+
+    if as_json:
+        out = []
+        for a in items:
+            out.append({
+                "cve": a.get("cve_id") or a["ghsa_id"],
+                "ghsa": a["ghsa_id"],
+                "severity": a.get("severity"),
+                "cvss": (a.get("cvss") or {}).get("score"),
+                "summary": a["summary"],
+                "published": a.get("published_at", "?")[:10],
+                "url": a.get("html_url"),
+                "packages": [
+                    {"ecosystem": (v.get("package") or {}).get("ecosystem"),
+                     "name": (v.get("package") or {}).get("name"),
+                     "range": v.get("vulnerable_version_range")}
+                    for v in (a.get("vulnerabilities") or [])
+                ],
+            })
+        print(json.dumps(out, indent=2))
         return
 
     for a in items:
