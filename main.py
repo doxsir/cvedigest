@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # cvedigest - свежие уязвимости из GitHub Advisory DB прямо в терминал
 # сделано за вечер, работает как работает
-import sys, json, http.client, socket, ipaddress
+import sys, json, time, http.client, socket, ipaddress
+from pathlib import Path
 
 API = "api.github.com"
 KEV_HOST = "www.cisa.gov"
 KEV_PATH = "/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+CACHE_TTL = 600  # секунд, потом снова ходим в api
+CACHE_PATH = Path("cvedigest_cache.json")
 
 # severity по возрастанию боли (в api всё lowercase)
 SEV = {"low": 1, "moderate": 2, "high": 3, "critical": 4}
@@ -16,6 +19,23 @@ def check_host(host):
         ip = ipaddress.ip_address(info[4][0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
             sys.exit("host resolves to private address, not doing that")
+
+def cached_fetch(path, host):
+    # кэш в текущей папке, ключ = host+path, 10 минут жизни
+    key = host + path
+    cache = {}
+    try:
+        cache = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    hit = cache.get(key)
+    if hit and time.time() - hit["ts"] < CACHE_TTL:
+        print("[cache hit, %d sec old]" % int(time.time() - hit["ts"]), file=sys.stderr)
+        return hit["data"]
+    data = fetch(path, host)
+    cache[key] = {"ts": time.time(), "data": data}
+    CACHE_PATH.write_text(json.dumps(cache), encoding="utf-8")
+    return data
 
 def fetch(path, host=API):
     # коннект только к захардкоженным хостам, проверенным в check_host
@@ -35,7 +55,7 @@ def fetch(path, host=API):
 
 def fetch_kev():
     # список того что реально эксплуатируют в диком виде (cisa kev)
-    data = fetch(KEV_PATH, KEV_HOST)
+    data = cached_fetch(KEV_PATH, KEV_HOST)
     return {v["cveID"] for v in data.get("vulnerabilities", [])}
 
 def usage():
@@ -131,7 +151,7 @@ def main():
         if sev:
             # api хочет lowercase, иначе 422. полдня убил
             path += "&severity=" + sev
-        items = fetch(path)
+        items = cached_fetch(path, API)
         # для дайджеста качаем все 30, лимит не режем — там таблица на неделю
         md_digest(items, sev, fetch_kev() if kev else None)
         return
@@ -141,7 +161,7 @@ def main():
     if sev:
         path += "&severity=" + sev
 
-    items = fetch(path)  # берём с запасом, потом режем
+    items = cached_fetch(path, API)  # берём с запасом, потом режем
     kev_set = fetch_kev() if kev else None
     items = filter_items(items, sev, kev_set)
     items = items[:limit]
