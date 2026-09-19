@@ -17,6 +17,7 @@ python3 main.py npm --min high     # только high и critical
 python3 main.py go --limit 5
 python3 main.py --digest weekly    # неделя markdown-таблицей
 python3 main.py --min high --kev   # только то что в CISA KEV (реально эксплуатируют)
+python3 main.py npm --json         # машиночитаемый вывод для скриптов
 ```
 
 Экосистемы — те же, что в GitHub: pip, npm, go, maven, rubygems, cargo...
