@@ -33,18 +33,21 @@ python3 main.py npm --json         # машиночитаемый вывод д�
 ## Пример вывода
 
 ```
-[CRITICAL] Remote code execution in jinja2
-  GHSA-xxxx-xxxx-xxxx  published 2026-09-10
+[CRITICAL 9.8] Remote code execution in jinja2
+  CVE-2026-XXXX  published 2026-09-10
   - pip/jinja2 < 3.1.4
+  -> https://github.com/advisories/GHSA-xxxx-xxxx-xxxx
 ```
 
-## Пример работы как есть (v0.2)
+## Что внутри (v0.2)
 
 - читает /advisories у api.github.com (анонимно, 60 req/h хватит с головой)
+- кэш ответов на 10 минут в текущей папке (`cvedigest_cache.json`), чтобы не дёргать api
 - фильтр --min работает как "не ниже", т.к. api отдаёт только точную severity
 - --kev крестит с CISA Known Exploited (см. нюанс выше)
+- --json для скриптов
 
 ## TODO
 
 - [ ] markdown-дайджест за неделю в файл (сейчас только stdout)
-- [ ] кэш, чтобы не дёргать api каждый раз
+- [ ] CVSS-скор в json-выходе добавить диапазоны
