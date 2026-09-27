@@ -128,6 +128,24 @@ def parse_args(args):
             i += 1
     return eco, sev, limit, digest, kev, as_json
 
+def to_json_item(a):
+    # единая форма для --json и для --digest --json
+    return {
+        "cve": a.get("cve_id") or a["ghsa_id"],
+        "ghsa": a["ghsa_id"],
+        "severity": a.get("severity"),
+        "cvss": (a.get("cvss") or {}).get("score"),
+        "summary": a["summary"],
+        "published": a.get("published_at", "?")[:10],
+        "url": a.get("html_url"),
+        "packages": [
+            {"ecosystem": (v.get("package") or {}).get("ecosystem"),
+             "name": (v.get("package") or {}).get("name"),
+             "range": v.get("vulnerable_version_range")}
+            for v in (a.get("vulnerabilities") or [])
+        ],
+    }
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
@@ -153,7 +171,12 @@ def main():
             path += "&severity=" + sev
         items = cached_fetch(path, API)
         # для дайджеста качаем все 30, лимит не режем — там таблица на неделю
-        md_digest(items, sev, fetch_kev() if kev else None)
+        kev_set = fetch_kev() if kev else None
+        items = filter_items(items, sev, kev_set)
+        if as_json:
+            print(json.dumps([to_json_item(a) for a in items], indent=2))
+            return
+        md_digest(items, None, None)
         return
 
     if eco:
@@ -171,24 +194,7 @@ def main():
         return
 
     if as_json:
-        out = []
-        for a in items:
-            out.append({
-                "cve": a.get("cve_id") or a["ghsa_id"],
-                "ghsa": a["ghsa_id"],
-                "severity": a.get("severity"),
-                "cvss": (a.get("cvss") or {}).get("score"),
-                "summary": a["summary"],
-                "published": a.get("published_at", "?")[:10],
-                "url": a.get("html_url"),
-                "packages": [
-                    {"ecosystem": (v.get("package") or {}).get("ecosystem"),
-                     "name": (v.get("package") or {}).get("name"),
-                     "range": v.get("vulnerable_version_range")}
-                    for v in (a.get("vulnerabilities") or [])
-                ],
-            })
-        print(json.dumps(out, indent=2))
+        print(json.dumps([to_json_item(a) for a in items], indent=2))
         return
 
     for a in items:
